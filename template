@@ -1,1 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turret Command Center</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #121212; color: #ffffff; text-align: center; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        .video-feed { width: 100%; max-width: 600px; border: 3px solid #333; border-radius: 8px; margin-bottom: 20px; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .panel { background-color: #1e1e1e; padding: 20px; border-radius: 10px; border: 1px solid #2a2a2a; }
+        
+        button { padding: 12px 15px; margin: 5px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-mode { width: 45%; background: #444; color: #aaa; }
+        .btn-mode.active { background: #007bff; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-action { background: #28a745; color: white; }
+        .btn-cam { background: #6c757d; color: white; min-width: 80px; }
+        .btn-diag { background: #495057; color: white; min-width: 60px; font-size: 1.2em; padding: 5px; } 
+        .btn-toggle { background: #28a745; color: white; width: 30%; }
+        .btn-toggle.off { background: #444; color: #777; }
+        
+        .d-pad { 
+            display: grid; 
+            grid-template-areas: 
+                "lu up ru" 
+                "left center right" 
+                "ld down rd"; 
+            gap: 5px; 
+            justify-content: center; 
+        }
+        h3 { border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 0; color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Command Center</h1>
+        
+        <div class="panel" style="margin-bottom: 20px;">
+            <h3>System Mode</h3>
+            <button id="btn-manual" class="btn-mode active" onclick="setMode('manual')">MANUAL</button>
+            <button id="btn-auto" class="btn-mode" onclick="setMode('auto')">AUTONOMOUS</button>
+        </div>
 
+        <img class="video-feed" src="/video_feed" alt="Live Feed">
+
+        <div class="dashboard">
+            <div class="panel">
+                <h3>Manual Aim</h3>
+                <div class="d-pad">
+                    <button style="grid-area: lu" class="btn-diag" onclick="call('/api/camera/move?pan=4.0&tilt=9.0')">↖</button>
+                    <button style="grid-area: up" class="btn-cam" onclick="call('/api/camera/move?pan=keep&tilt=9.0')">UP</button>
+                    <button style="grid-area: ru" class="btn-diag" onclick="call('/api/camera/move?pan=11.0&tilt=9.0')">↗</button>
+
+                    <button style="grid-area: left" class="btn-cam" onclick="call('/api/camera/move?pan=4.0&tilt=keep')">LEFT</button>
+                    <button style="grid-area: center" class="btn-cam" onclick="call('/api/camera/move?pan=7.5&tilt=7.5')">CENTER</button>
+                    <button style="grid-area: right" class="btn-cam" onclick="call('/api/camera/move?pan=11.0&tilt=keep')">RIGHT</button>
+
+                    <button style="grid-area: ld" class="btn-diag" onclick="call('/api/camera/move?pan=4.0&tilt=6.0')">↙</button>
+                    <button style="grid-area: down" class="btn-cam" onclick="call('/api/camera/move?pan=keep&tilt=6.0')">DOWN</button>
+                    <button style="grid-area: rd" class="btn-diag" onclick="call('/api/camera/move?pan=11.0&tilt=6.0')">↘</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Mitigation Controls</h3>
+                <button class="btn-danger" onclick="call('/api/pump/on')">WATER ON</button>
+                <button class="btn-action" onclick="call('/api/pump/off')">WATER OFF</button>
+                
+                <h3 style="margin-top: 20px;">Sensor Logic</h3>
+                <button id="s-LEFT" class="btn-toggle" onclick="toggleSensor('LEFT')">LEFT IR</button>
+                <button id="s-CENTER" class="btn-toggle" onclick="toggleSensor('CENTER')">CENTER IR</button>
+                <button id="s-RIGHT" class="btn-toggle" onclick="toggleSensor('RIGHT')">RIGHT IR</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function call(endpoint) {
+            fetch(endpoint, {method: 'POST'}).catch(err => console.error("Request failed", err));
+        }
+
+        function setMode(mode) {
+            fetch(`/api/mode/${mode}`, {method: 'POST'}).then(() => {
+                document.getElementById('btn-manual').classList.toggle('active', mode === 'manual');
+                document.getElementById('btn-auto').classList.toggle('active', mode === 'auto');
+            });
+        }
+
+        function toggleSensor(zone) {
+            fetch(`/api/sensor/${zone}/toggle`, {method: 'POST'})
+                .then(res => res.json())
+                .then(data => {
+                    const btn = document.getElementById(`s-${zone}`);
+                    if(data.state) {
+                        btn.classList.remove('off');
+                    } else {
+                        btn.classList.add('off');
+                    }
+                });
+        }
+    </script>
+</body>
+</html>
